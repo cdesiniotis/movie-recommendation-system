@@ -1,0 +1,6 @@
+# user or item
+filtering_algorithm: user 
+cosine_similarity: True
+pearson_correlation: False
+IUF: False
+case_amplification: False
