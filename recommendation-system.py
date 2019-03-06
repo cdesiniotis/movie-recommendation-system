@@ -1,6 +1,7 @@
 import yaml
 import sys
 import math
+import parse
 
 # a is dict, b is a list of size 1000
 def cosineSimilarity(a, b): 
@@ -354,36 +355,12 @@ def main():
 	cfg = yaml.load(cfg_file)
 	cfg_file.close()
 
-	#Parse training data
-	#trainingData: multidimensional array (row=user, column=movie) 
-	trainingData = []					# training data which is a list of vectors
-	for line in training_file:
-		line = line.split() 			# convert to list of characters
-		line = [int(i) for i in line] 	# convert each element to an int
-		trainingData.append(line)		# append row to our training data
+	# Parse training file
+	trainingData = parse.parseTrainingData(training_file)
 	training_file.close()
 	
-	#Parse test file (contains data for users we need to predict for)
-	#users: dictionary of lists
-	#users[275] --> list of dictionaries associated with userID 275
-	#users[275][0] --> dictionary for movies userID 275 has rated {movieID:rating}
-	#user[275][1] --> dictionary with target movies for userID 275
-	users = {}
-	for line in test_file:
-		line = line.split()
-		line = [int(i) for i in line]
-		
-		uID = line[0]
-		mID = line[1]
-		rating = line[2]
-
-		if uID not in users:
-			users[line[0]] = [ {}, {} ] 
-
-		if rating != 0:
-			users[uID][0][mID] = rating
-		else:
-			users[uID][1][mID] = rating
+	# Parse test file
+	users = parse.parseTestData(test_file)
 	test_file.close()
 
 	# Get predictions with a specific method and write them to output file
