@@ -224,15 +224,15 @@ def adjustedCosineSimilarity(a, b, avgUserRatings):
 
 	return (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
 
-def itemBasedWeightedAverage(target, userRatings, neighbors):
+def itemBasedWeightedAverage(target, userRatings, neighbors, avgUser):
 	numerator = 0
 	denominator = 0
 
 	for i in range(len(neighbors)):
-		numerator += neighbors[i][1] * userRatings[neighbors[i][0]]
+		numerator += neighbors[i][1] * (userRatings[neighbors[i][0]] - avgUser)
 		denominator += abs(neighbors[i][1])
 
-	return round(numerator/denominator)
+	return round(avgUser + numerator/denominator)
 
 def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 	numUsers = len(trainingData) # number of users in training data
@@ -266,7 +266,7 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 				similarities[movie] = adjustedCosineSimilarity(trainingTranspose[targetMovie-1],trainingTranspose[movie-1], avgUserRatings)
 			print("similarities: {}".format(similarities))
 			# sort by similarity metric
-			neighbors = sorted(similarities.items(), key=lambda kv:kv[1], reverse=True)
+			neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
 			print("neighbors for movie {}: {}".format(targetMovie, neighbors))
 			remove = []
 			for i in range(len(neighbors)):
@@ -282,7 +282,7 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 			if len(neighbors) == 0:
 				predictions[user][targetMovie] = round(avgUser)
 			else:
-				predictions[user][targetMovie] = itemBasedWeightedAverage(targetMovie, l[0], neighbors)
+				predictions[user][targetMovie] = itemBasedWeightedAverage(targetMovie, l[0], neighbors, avgUser)
 		
 	
 	return predictions
@@ -334,8 +334,7 @@ def test():
 
 
 def main():
-	
-	
+
 	# Check if enough arguments supplied
 	if len(sys.argv) != 5:
 		print("Usage: {} <config file> <training-data> <test file> <output file>".format(sys.argv[0]))
@@ -400,7 +399,6 @@ def main():
 	sys.exit(0)
 	
 	
-
 
 if __name__ == "__main__":
 	main()
