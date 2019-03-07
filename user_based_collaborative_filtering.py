@@ -74,7 +74,7 @@ def computeAverage(x):
 	return sum/count
 
 # a: dict, b: list, avgA: avg rating for user A, avgB: avg rating for user B
-def pearsonCorrelation(a, b, avgA, avgB, cfg):
+def pearsonCorrelation(a, b, avgA, avgB, IUF_array, cfg):
 	dotproduct = 0
 	size_a = 0
 	size_b = 0
@@ -113,7 +113,7 @@ def pearsonWeightedAverage(target, training, neighbors, avgUser, avgTraining, cf
 
 	for uID, pearson_cor in neighbors:
 		if(cfg["case_amplification"]==True):
-			pearson_cor *= pow(pearson_cor, 1.5)
+			pearson_cor *= math.pow(abs(pearson_cor), 1.5)
 		numerator += (training[uID-1][target-1] - avgTraining[uID-1])*pearson_cor
 		denominator += abs(pearson_cor)
 
@@ -140,13 +140,13 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 				if(trainingData[i][j] > 0):
 					count += 1
 			try:
-				IUF_array[j] = log(numUsers/count)
+				IUF_array[j] = math.log(numUsers/count)
 			except ZeroDivisionError:
 				continue
 	#x = 0
 	#y = 0
 	predictions = {}
-	#k=40
+	k=40
 	for user, l in users.items():
 		predictions[user] = {}
 		# calculate user's average rating
@@ -157,7 +157,7 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 			if(cfg["cosine_similarity"]==True):
 				similarities[i+1] = cosineSimilarity(l[0],trainingData[i])
 			elif(cfg["pearson_correlation"]==True):
-				similarities[i+1] = pearsonCorrelation(l[0],trainingData[i], avgUser, avgTraining[i],cfg)
+				similarities[i+1] = pearsonCorrelation(l[0],trainingData[i], avgUser, avgTraining[i], IUF_array, cfg)
 		# sort by similarity metric (use absolute value here!)
 		neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
 		# make a prediction for each movie
@@ -176,7 +176,7 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 				del topNeighbors[i-offset]
 				offset += 1
 			
-			#topNeighbors = topNeighbors[:min(k,len(topNeighbors))]
+			topNeighbors = topNeighbors[:min(k,len(topNeighbors))]
 
 			# handle case when there are no neighbors to compare with!
 			# need to figure out a better way of approaching this

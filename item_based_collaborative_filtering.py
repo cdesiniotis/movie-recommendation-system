@@ -41,7 +41,7 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 	avgUserRatings = [0]*numUsers
 	for i in range(numUsers):
 		avgUserRatings[i] = ub_filtering.computeAverage(trainingData[i])
-	print("averages of all user's ratings: {}".format(avgUserRatings))
+	#print("averages of all user's ratings: {}".format(avgUserRatings))
 	# get transpose of training matrix
 	trainingTranspose = [ [] for i in range(numMovies)]
 	for i in range(numUsers):
@@ -55,19 +55,19 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 		predictions[user] = {}
 		# calculate user's average rating
 		avgUser = ub_filtering.computeAverage(l[0])
-		print("average new user ratings: {}".format(avgUser))
+		#print("average new user ratings: {}".format(avgUser))
 		
 		for targetMovie, rating in l[1].items():
 			# find similar movies to target movie
 			# calculated adjusted cosine similarity between target movie and all other movies the user has rated
 			similarities = {}	# {movieID: similarity}
 			for movie, rating in l[0].items():
-				print("calculating similarity between {} and {}".format(trainingTranspose[targetMovie-1],trainingTranspose[movie-1]))
+				#print("calculating similarity between {} and {}".format(trainingTranspose[targetMovie-1],trainingTranspose[movie-1]))
 				similarities[movie] = adjustedCosineSimilarity(trainingTranspose[targetMovie-1],trainingTranspose[movie-1], avgUserRatings)
-			print("similarities: {}".format(similarities))
+			#print("similarities: {}".format(similarities))
 			# sort by similarity metric
 			neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
-			print("neighbors for movie {}: {}".format(targetMovie, neighbors))
+			#print("neighbors for movie {}: {}".format(targetMovie, neighbors))
 			remove = []
 			for i in range(len(neighbors)):
 				if(neighbors[i][1] == 0):
