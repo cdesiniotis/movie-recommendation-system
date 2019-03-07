@@ -71,9 +71,9 @@ def main():
 			#print("User: {} Known ratings: {} Predictions: {}".format(user, len(l[0]), len(l[1])))
 		
 		# Get predictions with a specific method and write them to output file
-		if(cfg["filtering_algorithm"]=="user"):
-			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg)
-		elif(cfg["filtering_algorithm"]=="item"):
+		if(cfg["filtering_algorithm"]=="user-based"):
+			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg["user-based"])
+		elif(cfg["filtering_algorithm"]=="item-based"):
 			predictions = ib_filtering.itemBasedCollaborativeFiltering(trainingData, users, cfg)
 		
 		

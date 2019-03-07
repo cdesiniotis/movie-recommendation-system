@@ -1,6 +1,7 @@
 mode: test
-filtering_algorithm: user 
-cosine_similarity: False
-pearson_correlation: True
-IUF: False
-case_amplification: False
+filtering_algorithm: user-based 
+user-based:
+  cosine_similarity: True
+  pearson_correlation: False
+  IUF: False
+  case_amplification: False
