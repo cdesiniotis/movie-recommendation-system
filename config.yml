@@ -5,3 +5,5 @@ user-based:
   pearson_correlation: False
   IUF: False
   case_amplification: False
+  k: 40
+  similarity_threshold: 0

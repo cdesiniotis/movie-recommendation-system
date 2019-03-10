@@ -20,19 +20,14 @@ def cosineSimilarity(a, b):
 	# do not count metric if less than two in common ratings
 	if count < 2:
 		return 0
-	'''
-	if(size_a == 0 or size_b == 0):
-		print("ERROR, size_a or size_b = 0!!!"),
-		print(a)
-		return 0
-	'''	
+
 	answer = 0
 	try:
 		answer = (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
 	except ZeroDivisionError:
 		return 0
 	return answer
-	#return (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
+
 
 # target: target movie we are trying to assign a rating to for a user
 # training: complete training data (list of lists)
@@ -45,10 +40,6 @@ def weightedAverage(target, training, neighbors):
 		numerator += training[uID-1][target-1]*cos_sim
 		denominator += cos_sim
 
-	# debug
-	if denominator == 0:
-		return None
-	#print(numerator, denominator, target)
 	return round(numerator/denominator)
 
 # Returns average of values in a dictionary or list
@@ -108,8 +99,8 @@ def pearsonCorrelation(a, b, avgA, avgB, IUF_array, cfg):
 # training: complete training data (list of lists)
 # neighbors: top neighbors (list of tuples (userID, cos_sim))
 def pearsonWeightedAverage(target, training, neighbors, avgUser, avgTraining, cfg):
-	numerator = 0
-	denominator = 0
+	numerator = 0.0
+	denominator = 0.0
 
 	for uID, pearson_cor in neighbors:
 		if(cfg["case_amplification"]==True):
@@ -117,10 +108,6 @@ def pearsonWeightedAverage(target, training, neighbors, avgUser, avgTraining, cf
 		numerator += (training[uID-1][target-1] - avgTraining[uID-1])*pearson_cor
 		denominator += abs(pearson_cor)
 
-	# debug
-	if denominator == 0:
-		return None
-	#print(numerator, denominator, target)
 	return round(avgUser + numerator/denominator)
 
 def userBasedCollaborativeFiltering(trainingData, users, cfg):
@@ -143,10 +130,11 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 				IUF_array[j] = math.log(numUsers/count)
 			except ZeroDivisionError:
 				continue
-	#x = 0
-	#y = 0
+
+	y = 0
 	predictions = {}
-	k=40
+	k = cfg["k"] 
+	similarityThreshold = cfg["similarity_threshold"]
 	for user, l in users.items():
 		predictions[user] = {}
 		# calculate user's average rating
@@ -165,9 +153,9 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 			topNeighbors = neighbors.copy()
 			remove = []
 
-			# remove neighbors which don't have a rating for target movie or whose pearson correlation is 0
+			# remove neighbors which don't have a rating for target movie or whose similarity metric is 0
 			for i in range(len(topNeighbors)):
-				if trainingData[topNeighbors[i][0]-1][targetMovie-1] == 0 or topNeighbors[i][1] == 0:
+				if trainingData[topNeighbors[i][0]-1][targetMovie-1] == 0 or abs(topNeighbors[i][1]) <= similarityThreshold:
 					remove.append(i)
 
 			# delete neighbors
@@ -176,17 +164,17 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 				del topNeighbors[i-offset]
 				offset += 1
 			
-			topNeighbors = topNeighbors[:min(k,len(topNeighbors))]
-
+			# only use top-k neighbors
+			if(k>0):
+				topNeighbors = topNeighbors[:min(k,len(topNeighbors))]
+			
 			# handle case when there are no neighbors to compare with!
 			# need to figure out a better way of approaching this
 			if len(topNeighbors) == 0:
-				#y += 1
+				y += 1
 				predictions[user][targetMovie] = round(avgUser)
 				#predictions[user][targetMovie] = 3
 			else:
-				#if(topNeighbors[len(topNeighbors)-1][1] < 0.8):
-					#x += 1
 				if(cfg["cosine_similarity"]==True):
 					predictions[user][targetMovie] = weightedAverage(targetMovie,trainingData,topNeighbors)
 				elif(cfg["pearson_correlation"]==True):
@@ -197,4 +185,6 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 					elif p > 5:
 						p = 5
 					predictions[user][targetMovie] = p
+
+	print("Times there were no similar users: {}".format(y))
 	return predictions

@@ -30,6 +30,7 @@ def meanAbsoluteError(predictions, trainingData):
 	denominator = 0
 	for user, d in predictions.items():
 		for movie, prediction in d.items():
+			#print("User: {} Movie: {} Prediction: {} Ground-Truth: {}".format(user,movie,prediction,trainingData[user-1][movie-1]))
 			numerator += abs(prediction - trainingData[user-1][movie-1])
 			denominator += 1
 	return numerator/denominator
@@ -67,8 +68,6 @@ def main():
 		testData = trainingData[(numUsers-20):]		# test data: users 181-200
 		newTrainingData = trainingData[:(numUsers-20)]	# training data : users 1-180
 		users = createTestData(testData, 5)
-		#for user, l in users.items():
-			#print("User: {} Known ratings: {} Predictions: {}".format(user, len(l[0]), len(l[1])))
 		
 		# Get predictions with a specific method and write them to output file
 		if(cfg["filtering_algorithm"]=="user-based"):
@@ -95,9 +94,9 @@ def main():
 		test_file.close()
 
 		# Get predictions with a specific method and write them to output file
-		if(cfg["filtering_algorithm"]=="user"):
-			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg)
-		elif(cfg["filtering_algorithm"]=="item"):
+		if(cfg["filtering_algorithm"]=="user-based"):
+			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg["user-based"])
+		elif(cfg["filtering_algorithm"]=="item-based"):
 			predictions = ib_filtering.itemBasedCollaborativeFiltering(trainingData, users, cfg)
 		
 		# Output predictions to output file
