@@ -76,9 +76,12 @@ def pearsonCorrelation(a, b, avgA, avgB, IUF_array, cfg):
 		if b[k-1] == 0:
 			continue
 		if(cfg["IUF"]==True):
-			dotproduct += (v*IUF_array[k-1] - avgA) * (b[k-1]*IUF_array[k-1] - avgB)
-			size_a += math.pow((v*IUF_array[k-1] - avgA),2)
-			size_b += math.pow((b[k-1]*IUF_array[k-1] - avgB),2)
+			#dotproduct += (v*IUF_array[k-1] - avgA) * (b[k-1]*IUF_array[k-1] - avgB)
+			#size_a += math.pow((v*IUF_array[k-1] - avgA),2)
+			#size_b += math.pow((b[k-1]*IUF_array[k-1] - avgB),2)
+			dotproduct += IUF_array[k-1]*(v - avgA) * (b[k-1] - avgB)*IUF_array[k-1]
+			size_a += math.pow((v - avgA)*IUF_array[k-1],2)
+			size_b += math.pow((b[k-1]- avgB)*IUF_array[k-1] ,2)
 		else:
 			dotproduct += (v - avgA) * (b[k-1] - avgB)
 			size_a += math.pow((v - avgA),2)
@@ -131,14 +134,16 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 			except ZeroDivisionError:
 				continue
 
-	y = 0
+	y = 0	# for debugging
 	predictions = {}
-	k = cfg["k"] 
-	similarityThreshold = cfg["similarity_threshold"]
+	k = int(cfg["k"]) 
+	similarityThreshold = float(cfg["similarity_threshold"])
 	for user, l in users.items():
 		predictions[user] = {}
+		
 		# calculate user's average rating
 		avgUser = computeAverage(l[0])
+		
 		# calculate similarity metric between new user and users in training data
 		similarities = {}
 		for i in range(len(trainingData)):
@@ -146,8 +151,10 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 				similarities[i+1] = cosineSimilarity(l[0],trainingData[i])
 			elif(cfg["pearson_correlation"]==True):
 				similarities[i+1] = pearsonCorrelation(l[0],trainingData[i], avgUser, avgTraining[i], IUF_array, cfg)
+		
 		# sort by similarity metric (use absolute value here!)
 		neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
+		
 		# make a prediction for each movie
 		for targetMovie, rating in l[1].items():
 			topNeighbors = neighbors.copy()
@@ -155,7 +162,7 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 
 			# remove neighbors which don't have a rating for target movie or whose similarity metric is 0
 			for i in range(len(topNeighbors)):
-				if trainingData[topNeighbors[i][0]-1][targetMovie-1] == 0 or abs(topNeighbors[i][1]) <= similarityThreshold:
+				if trainingData[topNeighbors[i][0]-1][targetMovie-1] == 0 or topNeighbors[i][1] == similarityThreshold:
 					remove.append(i)
 
 			# delete neighbors
@@ -168,12 +175,11 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 			if(k>0):
 				topNeighbors = topNeighbors[:min(k,len(topNeighbors))]
 			
-			# handle case when there are no neighbors to compare with!
-			# need to figure out a better way of approaching this
+			# get prediction by calculating weighted average
+			# handle case when there are no neighbors to compare with
 			if len(topNeighbors) == 0:
 				y += 1
 				predictions[user][targetMovie] = round(avgUser)
-				#predictions[user][targetMovie] = 3
 			else:
 				if(cfg["cosine_similarity"]==True):
 					predictions[user][targetMovie] = weightedAverage(targetMovie,trainingData,topNeighbors)
@@ -185,6 +191,6 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 					elif p > 5:
 						p = 5
 					predictions[user][targetMovie] = p
-
+	# debug
 	print("Times there were no similar users: {}".format(y))
 	return predictions

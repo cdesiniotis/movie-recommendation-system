@@ -37,11 +37,12 @@ def itemBasedWeightedAverage(target, userRatings, neighbors, avgUser):
 def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 	numUsers = len(trainingData) # number of users in training data
 	numMovies = len(trainingData[0]) # number of movies in training data
+	
 	# get average rating for all users in training data
 	avgUserRatings = [0]*numUsers
 	for i in range(numUsers):
 		avgUserRatings[i] = ub_filtering.computeAverage(trainingData[i])
-	#print("averages of all user's ratings: {}".format(avgUserRatings))
+	
 	# get transpose of training matrix
 	trainingTranspose = [ [] for i in range(numMovies)]
 	for i in range(numUsers):
@@ -49,25 +50,23 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 			trainingTranspose[j].append(trainingData[i][j])
 
 	# predictions: dictionary of dictionaries {userID:{movieID:rating. . . }}
-	predictions = {} 		
-	#k = 40
+	predictions = {} 
+	y = 0	# debug
 	for user, l in users.items():
 		predictions[user] = {}
 		# calculate user's average rating
 		avgUser = ub_filtering.computeAverage(l[0])
-		#print("average new user ratings: {}".format(avgUser))
 		
 		for targetMovie, rating in l[1].items():
 			# find similar movies to target movie
 			# calculated adjusted cosine similarity between target movie and all other movies the user has rated
 			similarities = {}	# {movieID: similarity}
 			for movie, rating in l[0].items():
-				#print("calculating similarity between {} and {}".format(trainingTranspose[targetMovie-1],trainingTranspose[movie-1]))
 				similarities[movie] = adjustedCosineSimilarity(trainingTranspose[targetMovie-1],trainingTranspose[movie-1], avgUserRatings)
-			#print("similarities: {}".format(similarities))
 			# sort by similarity metric
 			neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
-			#print("neighbors for movie {}: {}".format(targetMovie, neighbors))
+			
+			# remove neighboring movies whose similarity metric = 0
 			remove = []
 			for i in range(len(neighbors)):
 				if(neighbors[i][1] == 0):
@@ -79,10 +78,18 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 				del neighbors[i-offset]
 				offset += 1
 
+			# get prediction by calculating weighted average
+			# handle case when there are no neighbors to compare with
 			if len(neighbors) == 0:
+				y += 1
 				predictions[user][targetMovie] = round(avgUser)
 			else:
-				predictions[user][targetMovie] = itemBasedWeightedAverage(targetMovie, l[0], neighbors, avgUser)
-		
-	
+				p = itemBasedWeightedAverage(targetMovie, l[0], neighbors, avgUser)
+				if p < 1: 
+					p = 1
+				elif p > 5:
+					p = 5
+				predictions[user][targetMovie] = p
+	# debug	
+	print("Times there were no similar users: {}".format(y))
 	return predictions

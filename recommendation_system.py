@@ -37,7 +37,7 @@ def meanAbsoluteError(predictions, trainingData):
 
 
 def main():
-
+	
 	# Check if enough arguments supplied
 	if len(sys.argv) != 5:
 		print("Usage: {} <config file> <training-data> <test file> <output file>".format(sys.argv[0]))
@@ -107,7 +107,7 @@ def main():
 		
 	output_file.close()
 	sys.exit(0)
-	
+
 
 if __name__ == "__main__":
 	main()
