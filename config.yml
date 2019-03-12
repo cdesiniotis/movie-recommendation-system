@@ -1,9 +1,16 @@
 mode: test
-filtering_algorithm: user-based 
+filtering_algorithm: item-based
 user-based:
-  cosine_similarity: True
-  pearson_correlation: False
+  cosine_similarity: False
+  pearson_correlation: True
+  euclidean_distance: False
   IUF: False
-  case_amplification: False
-  k: 40
+  case_amplification: True
+  k: -1
   similarity_threshold: 0
+
+
+
+
+
+

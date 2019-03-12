@@ -72,7 +72,7 @@ def main():
 		
 		# Get predictions with a specific method and write them to output file
 		if(cfg["filtering_algorithm"]=="user-based"):
-			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg["user-based"])
+			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg)
 		elif(cfg["filtering_algorithm"]=="item-based"):
 			predictions = ib_filtering.itemBasedCollaborativeFiltering(trainingData, users, cfg)
 		elif(cfg["filtering_algorithm"]=="custom"):
@@ -97,7 +97,7 @@ def main():
 
 		# Get predictions with a specific method and write them to output file
 		if(cfg["filtering_algorithm"]=="user-based"):
-			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg["user-based"])
+			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg)
 		elif(cfg["filtering_algorithm"]=="item-based"):
 			predictions = ib_filtering.itemBasedCollaborativeFiltering(trainingData, users, cfg)
 		elif(cfg["filtering_algorithm"]=="custom"):

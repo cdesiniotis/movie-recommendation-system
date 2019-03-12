@@ -1,8 +1,30 @@
 import math
 import user_based_collaborative_filtering as ub_filtering
 
-# avgTraining: average ratings for all users
-def adjustedCosineSimilarity(a, b, avgUserRatings):
+# Return euclidean distance between a and b
+# a: list, b: list
+def euclidianDistance(a, b):
+	distance = 0
+	count = 0
+
+	for i in range(len(a)):
+		if(a[i]==0 or b[i]==0):
+			continue
+		distance += math.pow(a[i] - b[i], 2)
+		count += 1
+
+	distance = math.sqrt(distance)
+	similarity = (1/(distance + 1))
+	if count == 0:
+		return 0
+	elif count == 1:
+		return 0.2*similarity
+	else:
+		return similarity
+
+# Return adjusted cosine similarity between a and b
+# a: list, b: list, avgUserRatings: average ratings for all users in training data
+def adjustedCosineSimilarity(a, b, avgUserRatings, cfg):
 	dotproduct = 0
 	size_a = 0
 	size_b = 0
@@ -15,15 +37,26 @@ def adjustedCosineSimilarity(a, b, avgUserRatings):
 		size_a += pow((a[i] - avgUserRatings[i]), 2)
 		size_b += pow((b[i] - avgUserRatings[i]), 2)
 		count += 1
-
-	if(count < 2):
+	
+	# throw away information that is not useful
+	if count == 0:
 		return 0
-
-	if(size_a == 0 or size_b == 0):
+	# custom algorithm: use euclidean distance when there is only 1 similar rating or size_a or size_b = 0
+	elif cfg["filtering_algorithm"] == "custom" and (count == 1 or size_a == 0 or size_b == 0):
+		return 0.25*euclidianDistance(a,b)
+	# throw away information that is not useful
+	elif count == 1 or size_a == 0 or size_b == 0:
 		return 0
+	# return adjusted-cosine-similarity
+	else:
+		return (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
 
-	return (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
 
+# Return weighted average of ratings for similar movies
+# target: movie we are trying to predict the rating for
+# userRatings: known ratings for user we are trying to predict for
+# neighbors: similar movies (list of tuples (movieID, similarity))
+# avgUser: average rating for user we are trying to predict for
 def itemBasedWeightedAverage(target, userRatings, neighbors, avgUser):
 	numerator = 0
 	denominator = 0
@@ -34,6 +67,10 @@ def itemBasedWeightedAverage(target, userRatings, neighbors, avgUser):
 
 	return round(avgUser + numerator/denominator)
 
+
+# Returns a dictionary of rating predictions
+# Performs the appropriate item-based collaborative filtering method
+# specified in the configuration file
 def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 	numUsers = len(trainingData) # number of users in training data
 	numMovies = len(trainingData[0]) # number of movies in training data
@@ -59,10 +96,10 @@ def itemBasedCollaborativeFiltering(trainingData, users, cfg):
 		
 		for targetMovie, rating in l[1].items():
 			# find similar movies to target movie
-			# calculated adjusted cosine similarity between target movie and all other movies the user has rated
+			# calculate adjusted cosine similarity between target movie and all other movies the user has rated
 			similarities = {}	# {movieID: similarity}
 			for movie, rating in l[0].items():
-				similarities[movie] = adjustedCosineSimilarity(trainingTranspose[targetMovie-1],trainingTranspose[movie-1], avgUserRatings)
+				similarities[movie] = adjustedCosineSimilarity(trainingTranspose[targetMovie-1],trainingTranspose[movie-1], avgUserRatings, cfg)
 			# sort by similarity metric
 			neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
 			

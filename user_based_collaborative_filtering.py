@@ -1,7 +1,8 @@
 import math
 
-# a is dict, b is a list of size 1000
-def cosineSimilarity(a, b): 
+# Return cosine similarity between a and b
+# a: dict, b: list
+def cosineSimilarity(a, b, cfg): 
 	dotproduct = 0
 	size_a = 0
 	size_b = 0
@@ -16,22 +17,51 @@ def cosineSimilarity(a, b):
 		size_a += math.pow(v,2)
 		size_b += math.pow(b[k-1],2)
 		count += 1
-
-	# do not count metric if less than two in common ratings
-	if count < 2:
+	
+	# throw away information that is not useful
+	if count == 0:
 		return 0
-
-	answer = 0
-	try:
-		answer = (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
-	except ZeroDivisionError:
+	# custom-algorithm: use euclidean distance when there is only 1 similar rating
+	elif count == 1 and cfg["filtering_algorithm"] == "custom":
+		# euclidean distance times a small factor (experimenting for a good value)
+		return 0.2*euclideanDistance(a, b)
+	# throw away information that is not useful
+	elif count == 1:
 		return 0
-	return answer
+	# return cosine similarity
+	else:
+		answer = 0
+		try:
+			answer = (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
+		except ZeroDivisionError:
+			return 0
+		return answer
 
-
-# target: target movie we are trying to assign a rating to for a user
+# Return euclidean distance between a and b
+# a: dict, b: list
+def euclideanDistance(a, b):
+	distance = 0
+	count = 0
+	# k: movie, v: rating
+	for k, v in a.items():
+		if b[k-1] == 0:
+			continue
+		distance += math.pow(v - b[k-1], 2)
+		count += 1
+	
+	distance = math.sqrt(distance)
+	similarity = (1/(distance + 1))
+	if count == 0:
+		return 0
+	elif count == 1:
+		return 0.2*similarity
+	else:
+		return similarity
+	
+# Return weighted average of ratings from similar users
+# target: movie we are trying to predict the rating for
 # training: complete training data (list of lists)
-# neighbors: top neighbors (list of tuples (userID, cos_sim))
+# neighbors: similar users (list of tuples (userID, cos_sim))
 def weightedAverage(target, training, neighbors):
 	numerator = 0
 	denominator = 0
@@ -42,7 +72,7 @@ def weightedAverage(target, training, neighbors):
 
 	return round(numerator/denominator)
 
-# Returns average of values in a dictionary or list
+# Return average of values in a dictionary or list
 # dictionary: used for users
 # list: used for training data
 def computeAverage(x):
@@ -64,7 +94,9 @@ def computeAverage(x):
 	
 	return sum/count
 
+# Return pearson correlation between a and b
 # a: dict, b: list, avgA: avg rating for user A, avgB: avg rating for user B
+# IUF_array: inverse user frequency for each movie
 def pearsonCorrelation(a, b, avgA, avgB, IUF_array, cfg):
 	dotproduct = 0
 	size_a = 0
@@ -75,10 +107,7 @@ def pearsonCorrelation(a, b, avgA, avgB, IUF_array, cfg):
 	for k, v in a.items():
 		if b[k-1] == 0:
 			continue
-		if(cfg["IUF"]==True):
-			#dotproduct += (v*IUF_array[k-1] - avgA) * (b[k-1]*IUF_array[k-1] - avgB)
-			#size_a += math.pow((v*IUF_array[k-1] - avgA),2)
-			#size_b += math.pow((b[k-1]*IUF_array[k-1] - avgB),2)
+		if(cfg["user-based"]["IUF"]==True):
 			dotproduct += IUF_array[k-1]*(v - avgA) * (b[k-1] - avgB)*IUF_array[k-1]
 			size_a += math.pow((v - avgA)*IUF_array[k-1],2)
 			size_b += math.pow((b[k-1]- avgB)*IUF_array[k-1] ,2)
@@ -87,18 +116,23 @@ def pearsonCorrelation(a, b, avgA, avgB, IUF_array, cfg):
 			size_a += math.pow((v - avgA),2)
 			size_b += math.pow((b[k-1] - avgB),2)
 		count += 1
-
-	# do not count metric if less than two in common ratings
-	if count < 2:
+	
+	# throw away information that is not useful
+	if count == 0:
 		return 0
+	# custom algorithm: use euclidean distance when there is only 1 similar rating or size_a or size_b = 0
+	elif cfg["filtering_algorithm"] == "custom" and (count == 1 or size_a == 0 or size_b == 0):
+		# euclidean distance times a small factor (experimenting for a good value)
+		return 0.2*euclideanDistance(a, b)
+	# throw away information that is not useful
+	elif count == 1 or size_a == 0 or size_b == 0:
+		return 0
+	# return pearson correlation
+	else:
+		return (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
 
-	# this is not useful information
-	if(size_a == 0 or size_b == 0):
-		return 0	
-
-	return (dotproduct)/(math.sqrt(size_a)*math.sqrt(size_b))
-
-# target: target movie we are trying to assign a rating to for a user
+# Return weighted average of ratings from similar users
+# target: target movie we are trying to predict a rating for
 # training: complete training data (list of lists)
 # neighbors: top neighbors (list of tuples (userID, cos_sim))
 def pearsonWeightedAverage(target, training, neighbors, avgUser, avgTraining, cfg):
@@ -106,13 +140,17 @@ def pearsonWeightedAverage(target, training, neighbors, avgUser, avgTraining, cf
 	denominator = 0.0
 
 	for uID, pearson_cor in neighbors:
-		if(cfg["case_amplification"]==True):
+		if(cfg["user-based"]["case_amplification"]==True):
 			pearson_cor *= math.pow(abs(pearson_cor), 1.5)
 		numerator += (training[uID-1][target-1] - avgTraining[uID-1])*pearson_cor
 		denominator += abs(pearson_cor)
 
 	return round(avgUser + numerator/denominator)
 
+
+# Returns a dictionary of rating predictions
+# Performs the appropriate user-based collaborative filtering method
+# specified in the configuration file 
 def userBasedCollaborativeFiltering(trainingData, users, cfg):
 	numUsers = len(trainingData) # number of users in training data
 	numMovies = len(trainingData[0]) # number of movies in training data
@@ -123,7 +161,7 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 
 	# calculate IUF for every movie
 	IUF_array = [1]*numMovies
-	if(cfg["IUF"] == True):
+	if(cfg["user-based"]["IUF"] == True):
 		for j in range(numMovies):
 			count = 0
 			for i in range(numUsers):
@@ -136,8 +174,8 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 
 	y = 0	# for debugging
 	predictions = {}
-	k = int(cfg["k"]) 
-	similarityThreshold = float(cfg["similarity_threshold"])
+	k = int(cfg["user-based"]["k"]) 
+	similarityThreshold = float(cfg["user-based"]["similarity_threshold"])
 	for user, l in users.items():
 		predictions[user] = {}
 		
@@ -147,11 +185,12 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 		# calculate similarity metric between new user and users in training data
 		similarities = {}
 		for i in range(len(trainingData)):
-			if(cfg["cosine_similarity"]==True):
-				similarities[i+1] = cosineSimilarity(l[0],trainingData[i])
-			elif(cfg["pearson_correlation"]==True):
+			if(cfg["user-based"]["cosine_similarity"]==True):
+				similarities[i+1] = cosineSimilarity(l[0],trainingData[i],cfg)
+			elif(cfg["user-based"]["pearson_correlation"]==True):
 				similarities[i+1] = pearsonCorrelation(l[0],trainingData[i], avgUser, avgTraining[i], IUF_array, cfg)
-		
+			elif(cfg["user-based"]["euclidean_distance"]==True):
+				similarities[i+1] = euclideanDistance(l[0],trainingData[i])
 		# sort by similarity metric (use absolute value here!)
 		neighbors = sorted(similarities.items(), key=lambda kv:abs(kv[1]), reverse=True)
 		
@@ -179,11 +218,11 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 			# handle case when there are no neighbors to compare with
 			if len(topNeighbors) == 0:
 				y += 1
-				predictions[user][targetMovie] = round(avgUser)
+				predictions[user][targetMovie] = round(avgUser) # use average rating for user
 			else:
-				if(cfg["cosine_similarity"]==True):
+				if(cfg["user-based"]["cosine_similarity"]==True):
 					predictions[user][targetMovie] = weightedAverage(targetMovie,trainingData,topNeighbors)
-				elif(cfg["pearson_correlation"]==True):
+				elif(cfg["user-based"]["pearson_correlation"]==True):
 					p = pearsonWeightedAverage(targetMovie,trainingData,topNeighbors, avgUser, avgTraining,cfg)
 					# pearson prediction is unbounded, so account for this
 					if p < 1: 
@@ -191,6 +230,8 @@ def userBasedCollaborativeFiltering(trainingData, users, cfg):
 					elif p > 5:
 						p = 5
 					predictions[user][targetMovie] = p
+				elif(cfg["user-based"]["euclidean_distance"]==True):
+					predictions[user][targetMovie] = weightedAverage(targetMovie, trainingData, topNeighbors)
 	# debug
 	print("Times there were no similar users: {}".format(y))
 	return predictions
