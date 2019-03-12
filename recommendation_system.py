@@ -4,6 +4,7 @@ import math
 import parse
 import user_based_collaborative_filtering as ub_filtering
 import item_based_collaborative_filtering as ib_filtering
+import custom_algorithm as custom
 
 
 # Create test data from a subsection of the training data (for testing purposes)
@@ -67,14 +68,15 @@ def main():
 		numUsers = len(trainingData)
 		testData = trainingData[(numUsers-20):]		# test data: users 181-200
 		newTrainingData = trainingData[:(numUsers-20)]	# training data : users 1-180
-		users = createTestData(testData, 5)
+		users = createTestData(testData,5)
 		
 		# Get predictions with a specific method and write them to output file
 		if(cfg["filtering_algorithm"]=="user-based"):
 			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg["user-based"])
 		elif(cfg["filtering_algorithm"]=="item-based"):
 			predictions = ib_filtering.itemBasedCollaborativeFiltering(trainingData, users, cfg)
-		
+		elif(cfg["filtering_algorithm"]=="custom"):
+			predictions = custom.customAlgorithm(trainingData, users, cfg)
 		
 		# Output predictions to output file
 		for user, d in predictions.items():
@@ -98,7 +100,9 @@ def main():
 			predictions = ub_filtering.userBasedCollaborativeFiltering(trainingData, users, cfg["user-based"])
 		elif(cfg["filtering_algorithm"]=="item-based"):
 			predictions = ib_filtering.itemBasedCollaborativeFiltering(trainingData, users, cfg)
-		
+		elif(cfg["filtering_algorithm"]=="custom"):
+			predictions = custom.customAlgorithm(trainingData, users, cfg)
+
 		# Output predictions to output file
 		for user, d in predictions.items():
 			for movie, prediction in d.items():
